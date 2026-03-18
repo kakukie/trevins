@@ -53,6 +53,8 @@ devserver*.log
 .env.production.local
 /$null
 /3
+db/*.db
+prisma/*.db
 .env.production
 .env.production.local
 # Skills directory

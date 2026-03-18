@@ -604,7 +604,18 @@ export function UserDashboard({ view = 'dashboard' }: UserDashboardProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setSelectedQR({ code: booking.qrCode || booking.bookingCode, booking })}
+                    onClick={() =>
+                      setSelectedQR({
+                        code: booking.qrCode || booking.bookingCode,
+                        title: 'Kode QR Tiket',
+                        description: 'Tunjukkan kode QR ini saat check-in',
+                        lines: [
+                          booking.event?.name || 'Event',
+                          booking.items?.[0]?.ticket?.name || 'Tiket',
+                          `${booking.items?.reduce((sum, item) => sum + item.quantity, 0) || 0} tiket`,
+                        ],
+                      })
+                    }
                   >
                     <QrCode className="h-4 w-4" />
                   </Button>
@@ -915,7 +926,18 @@ export function UserDashboard({ view = 'dashboard' }: UserDashboardProps) {
                       size="sm"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => setSelectedQR({ code: booking.qrCode || booking.bookingCode, booking })}
+                      onClick={() =>
+                        setSelectedQR({
+                          code: booking.qrCode || booking.bookingCode,
+                          title: 'Kode QR Tiket',
+                          description: 'Tunjukkan kode QR ini saat check-in',
+                          lines: [
+                            booking.event?.name || 'Event',
+                            booking.items?.[0]?.ticket?.name || 'Tiket',
+                            `${booking.items?.reduce((sum, item) => sum + item.quantity, 0) || 0} tiket`,
+                          ],
+                        })
+                      }
                     >
                       <QrCode className="h-4 w-4 mr-1" />
                       Lihat QR
