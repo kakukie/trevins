@@ -27,8 +27,7 @@ services:
       - ./logs:/app/logs
     networks:
       - trevins-network
-    depends_on:
-      - caddy
+    depends_on: []
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -36,25 +35,7 @@ services:
       retries: 3
       start_period: 40s
 
-  caddy:
-    image: caddy:2-alpine
-    container_name: trevins-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "81:81"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./caddy_data:/data
-      - ./caddy_config:/config
-      - ./public/images:/app/public/images
-    networks:
-      - trevins-network
-
-volumes:
-  caddy_data:
-  caddy_config:
+  # caddy disabled in production when Nginx reverse proxy already handles 80/443
 
 networks:
   trevins-network:
