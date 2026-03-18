@@ -48,29 +48,7 @@ app.startlinx.online {
 	}
 }
 
-:80 {
-	# Enable compression
-	encode {
-		gzip
-		zstd
-	}
-
-	# Security headers
-	header {
-		# HSTS (uncomment for production with SSL)
-		# Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "SAMEORIGIN"
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy "strict-origin-when-cross-origin"
-		Permissions-Policy "camera=(), microphone=(), geolocation=()"
-	}
-
-	# Redirect HTTP to HTTPS domain
-	handle {
-		redir https://app.startlinx.online{uri}
-	}
-}
+ 
 
 # Admin interface on port 81
 :81 {
