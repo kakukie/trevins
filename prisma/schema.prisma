@@ -1,0 +1,397 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User roles: ADMIN, VENDOR, USER
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  phone         String?
+  avatar        String?
+  role          String    @default("USER") // ADMIN, VENDOR, USER
+  isActive      Boolean   @default(true)
+  emailVerified    DateTime?
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  vendor        Vendor?
+  bookings      Booking[]
+  accommodationBookings AccommodationBooking[]
+  transactions  Transaction[]
+  reviews       Review[]
+  notifications Notification[]
+}
+
+// Vendor profile (for vendors)
+model Vendor {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  subscriptionPlanId String?
+  businessName String
+  description String?
+  logo        String?
+  address     String?
+  city        String?
+  phone       String?
+  isVerified  Boolean  @default(false)
+  isActive    Boolean  @default(true) // subscription active/inactive
+  subscriptionStatus String @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  subscriptionEndsAt DateTime?
+  rating      Float    @default(0)
+  totalReviews Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionPlan SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
+  events      Event[]
+  tickets     Ticket[]
+  accommodations Accommodation[]
+  accommodationBookings AccommodationBooking[]
+  paymentMethods VendorPaymentMethod[]
+  bookings    Booking[]
+  categories  Category[]
+}
+
+// Subscription plan / package (SaaS)
+model SubscriptionPlan {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  description       String?
+  maxEvents         Int?     // null = unlimited
+  maxTickets        Int?
+  maxAccommodations Int?
+  maxCategories     Int?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  vendors           Vendor[]
+}
+
+// Category master (global by admin, or vendor-owned)
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String
+  type      String   // EVENT, ACCOMMODATION
+  ownerKey  String   // "GLOBAL" or vendorId
+  vendorId  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vendor    Vendor?  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([slug, type, ownerKey])
+  @@index([type, ownerKey])
+}
+
+// Vendor payment methods (manual transfer / static QR / etc)
+model VendorPaymentMethod {
+  id            String   @id @default(cuid())
+  vendorId      String
+  type          String   // BANK_TRANSFER, EWALLET, QR_STATIC, VA
+  label         String
+  accountName   String?
+  accountNumber String?
+  provider      String?  // bank / ewallet name
+  qrString      String?  // QRIS string (if available)
+  qrImageUrl    String?  // uploaded QR image (data URL or storage URL)
+  instructions  String?
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  vendor        Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  bookings      Booking[]
+  accommodationBookings AccommodationBooking[]
+}
+
+// Event/Activity model
+model Event {
+  id          String   @id @default(cuid())
+  vendorId    String
+  name        String
+  slug        String   @unique
+  description String?
+  category    String   // Pantai, Gunung, Permainan, Budaya, dll
+  images      String   // JSON array of image URLs
+  address     String?
+  city        String?
+  latitude    Float?
+  longitude   Float?
+  rating      Float    @default(0)
+  totalReviews Int     @default(0)
+  totalSales  Int      @default(0)
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  validFrom   DateTime
+  validUntil  DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  vendor      Vendor     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  tickets     Ticket[]
+  reviews     Review[]
+  bookings    Booking[]
+}
+
+// Ticket type for events
+model Ticket {
+  id          String   @id @default(cuid())
+  eventId     String?
+  vendorId    String
+  name        String
+  sku         String   @unique
+  description String?
+  type        String   @default("ADULT") // ADULT, CHILD, SENIOR
+  price       Float
+  discountPrice Float?
+  quota       Int
+  sold        Int      @default(0)
+  validFrom   DateTime
+  validUntil  DateTime
+  isActive    Boolean  @default(true)
+  images      String?  // JSON array of image URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  event       Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  vendor      Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  bookingItems BookingItem[]
+}
+
+// Accommodation (Kos/Penginapan)
+model Accommodation {
+  id          String   @id @default(cuid())
+  vendorId    String
+  name        String
+  slug        String   @unique
+  description String?
+  type        String   @default("KOS") // KOS, HOTEL, VILLA, HOMESTAY
+  address     String?
+  city        String?
+  latitude    Float?
+  longitude   Float?
+  images      String   // JSON array of image URLs
+  facilities  String?  // JSON array of facilities
+  rating      Float    @default(0)
+  totalReviews Int     @default(0)
+  totalRooms  Int
+  availableRooms Int
+  pricePerNight Float
+  discountPrice Float?
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  vendor      Vendor     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  rooms       Room[]
+  bookings    AccommodationBooking[]
+  reviews     Review[]
+}
+
+// Room for accommodation
+model Room {
+  id              String   @id @default(cuid())
+  accommodationId String
+  name            String
+  description     String?
+  pricePerNight   Float
+  discountPrice   Float?
+  capacity        Int
+  facilities      String?  // JSON array of facilities
+  images          String?  // JSON array of image URLs
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  accommodation   Accommodation @relation(fields: [accommodationId], references: [id], onDelete: Cascade)
+  bookings        AccommodationBooking[]
+}
+
+// Booking for events/tickets
+model Booking {
+  id              String   @id @default(cuid())
+  bookingCode     String   @unique
+  userId          String
+  eventId         String?
+  vendorId        String?
+  status          String   @default("PENDING") // PENDING, CONFIRMED, PAID, CANCELLED, EXPIRED
+  totalAmount     Float
+  discountAmount  Float    @default(0)
+  finalAmount     Float
+  paymentMethod   String?
+  vendorPaymentMethodId String?
+  paymentStatus   String   @default("UNPAID") // UNPAID, PAID, REFUNDED
+  paymentDeadline DateTime?
+  qrCode          String?  // QR code for ticket
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event           Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  vendor          Vendor?       @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  vendorPaymentMethod VendorPaymentMethod? @relation(fields: [vendorPaymentMethodId], references: [id], onDelete: SetNull)
+  items           BookingItem[]
+  transaction     Transaction?
+}
+
+// Booking items (tickets in booking)
+model BookingItem {
+  id          String   @id @default(cuid())
+  bookingId   String
+  ticketId    String
+  quantity    Int
+  price       Float
+  subtotal    Float
+  createdAt   DateTime @default(now())
+
+  // Relations
+  booking     Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  ticket      Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
+
+// Accommodation booking
+model AccommodationBooking {
+  id              String   @id @default(cuid())
+  bookingCode     String   @unique
+  userId          String
+  vendorId        String
+  accommodationId String
+  roomId          String
+  checkIn         DateTime
+  checkOut        DateTime
+  nights          Int
+  guests          Int      @default(1)
+  status          String   @default("PENDING") // PENDING, CONFIRMED, PAID, CANCELLED
+  totalAmount     Float
+  discountAmount  Float    @default(0)
+  finalAmount     Float
+  paymentMethod   String?
+  vendorPaymentMethodId String?
+  paymentStatus   String   @default("UNPAID")
+  paymentDeadline DateTime?
+  qrCode          String?
+  notes           String?
+  guestName       String
+  guestPhone      String
+  guestEmail      String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendor          Vendor        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  accommodation   Accommodation @relation(fields: [accommodationId], references: [id], onDelete: Cascade)
+  room            Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  vendorPaymentMethod VendorPaymentMethod? @relation(fields: [vendorPaymentMethodId], references: [id], onDelete: SetNull)
+  transaction     Transaction?
+}
+
+// Transaction/Payment record
+model Transaction {
+  id              String   @id @default(cuid())
+  transactionCode String   @unique
+  userId          String
+  bookingId       String?  @unique
+  accommodationBookingId String? @unique
+  amount          Float
+  paymentMethod   String
+  paymentProvider String?
+  paymentReference String?
+  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED, REFUNDED
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking         Booking?           @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  accommodationBooking AccommodationBooking? @relation(fields: [accommodationBookingId], references: [id], onDelete: SetNull)
+}
+
+// Review/Rating
+model Review {
+  id          String   @id @default(cuid())
+  userId      String
+  eventId     String?
+  accommodationId String?
+  rating      Float
+  comment     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  accommodation Accommodation? @relation(fields: [accommodationId], references: [id], onDelete: Cascade)
+}
+
+// Voucher/Discount
+model Voucher {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  type        String   @default("PERCENTAGE") // PERCENTAGE, FIXED
+  value       Float
+  minValue    Float    @default(0)
+  maxValue    Float?
+  usageLimit  Int?
+  usedCount   Int      @default(0)
+  validFrom   DateTime
+  validUntil  DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Notification
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // BOOKING, PAYMENT, SYSTEM, etc.
+  isRead    Boolean  @default(false)
+  data      String?  // JSON additional data
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// System settings
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

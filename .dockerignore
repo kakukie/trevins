@@ -1,0 +1,110 @@
+# ===========================================
+# .dockerignore for TRIPIFY
+# ===========================================
+
+# Dependencies
+node_modules
+npm-debug.log
+yarn.lock
+pnpm-lock.yaml
+pnpm-workspace.yaml
+bun.lockb
+
+# Build output
+.next
+out
+build
+dist
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production
+.env.example
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+.gitmodules
+
+# Docker (exclude from build context)
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+docs
+CHANGELOG
+LICENSE
+
+# Tests
+test
+tests
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage
+.nyc_output
+jest.config.*
+vitest.config.*
+playwright.config.*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+.AppleDouble
+.LSOverride
+
+# Uploads (will be mounted as volume)
+uploads/*
+download/*
+examples/*
+
+# Database (SQLite)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Prisma
+prisma/migrations
+
+# Temporary files
+tmp
+temp
+.cache
+.tmp
+.temp
+
+# ESLint
+.eslintcache
+
+# Bun
+.bun
+
+# Misc
+*.bak
+*.backup
+*.old
+*.orig

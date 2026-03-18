@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trevins-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - BREVO_API_KEY=${BREVO_API_KEY}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME}
+      - PAYMENT_GATEWAY=${PAYMENT_GATEWAY}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    volumes:
+      - ./public/images:/app/public/images
+      - ./logs:/app/logs
+    networks:
+      - trevins-network
+    depends_on:
+      - caddy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: trevins-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+      - ./public/images:/app/public/images
+    networks:
+      - trevins-network
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  trevins-network:
+    driver: bridge

@@ -1,0 +1,142 @@
+:80 {
+	# Enable compression
+	encode {
+		gzip
+		zstd
+	}
+
+	# Security headers
+	header {
+		# HSTS (uncomment for production with SSL)
+		# Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	# Handle API requests
+	handle /api/* {
+		reverse_proxy app:3000 {
+			header_up Host {host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# Handle static files with caching
+	handle /_next/static/* {
+		reverse_proxy app:3000
+		header Cache-Control "public, max-age=31536000, immutable"
+	}
+
+	handle /static/* {
+		reverse_proxy app:3000
+		header Cache-Control "public, max-age=31536000, immutable"
+	}
+
+	handle /images/* {
+		reverse_proxy app:3000
+		header Cache-Control "public, max-age=86400"
+	}
+
+	# Handle all other requests
+	handle {
+		reverse_proxy app:3000 {
+			header_up Host {host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+}
+
+# Admin interface on port 81
+:81 {
+	@transform_port_query {
+		query XTransformPort=*
+	}
+
+	handle @transform_port_query {
+		reverse_proxy app:{query.XTransformPort} {
+			header_up Host {host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	handle {
+		reverse_proxy app:3000 {
+			header_up Host {host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+}
+
+# HTTPS configuration (uncomment for production with domain)
+# :443 {
+# 	# Your domain
+# 	trevins.com {
+# 		# Auto SSL with Let's Encrypt
+# 		tls {
+# 			dns cloudflare YOUR_CLOUDFLARE_API_TOKEN
+# 		}
+# 
+# 		# Enable compression
+# 		encode {
+# 			gzip
+# 			zstd
+# 		}
+# 
+# 		# Security headers
+# 		header {
+# 			Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# 			X-Content-Type-Options "nosniff"
+# 			X-Frame-Options "SAMEORIGIN"
+# 			X-XSS-Protection "1; mode=block"
+# 			Referrer-Policy "strict-origin-when-cross-origin"
+# 			Permissions-Policy "camera=(), microphone=(), geolocation=()"
+# 		}
+# 
+# 		# Handle API requests
+# 		handle /api/* {
+# 			reverse_proxy app:3000 {
+# 				header_up Host {host}
+# 				header_up X-Forwarded-For {remote_host}
+# 				header_up X-Forwarded-Proto {scheme}"
+# 				header_up X-Real-IP {remote_host}
+# 			}
+# 		}
+# 
+# 		# Handle static files with caching
+# 		handle /_next/static/* {
+# 			reverse_proxy app:3000
+# 			header Cache-Control "public, max-age=31536000, immutable"
+# 		}
+# 
+# 		handle /static/* {
+# 			reverse_proxy app:3000
+# 			header Cache-Control "public, max-age=31536000, immutable"
+# 		}
+# 
+# 		handle /images/* {
+# 			reverse_proxy app:3000
+# 			header Cache-Control "public, max-age=86400"
+# 		}
+# 
+# 		# Handle all other requests
+# 		handle {
+# 			reverse_proxy app:3000 {
+# 				header_up Host {host}
+# 				header_up X-Forwarded-For {remote_host}
+# 				header_up X-Forwarded-Proto {scheme}"
+# 				header_up X-Real-IP {remote_host}
+# 			}
+# 		}
+# 	}
+# }

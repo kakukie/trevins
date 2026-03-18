@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trevins-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - BREVO_API_KEY=${BREVO_API_KEY}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME}
+      - PAYMENT_GATEWAY=${PAYMENT_GATEWAY}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    volumes:
+      - ./public/images:/app/public/images
+      - ./logs:/app/logs
+    networks:
+      - trevins-network
+    depends_on:
+      - caddy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  # Caddy Reverse Proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: trevins-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"  # Admin interface
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+      - ./db:/app/db  # Mount SQLite database
+      - ./public/images:/app/public/images  # Mount images directory
+    networks:
+      - trevins-network
+
+  # PostgreSQL Database (for local development)
+  postgres:
+    image: postgres:15-alpine
+    container_name: trevins-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER:-trevins}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-trevins_password}
+      - POSTGRES_DB=${DB_NAME:-trevins}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - trevins-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trevins"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: Redis for caching
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: trevins-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - trevins-network
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  trevins-network:
+    driver: bridge
