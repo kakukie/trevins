@@ -293,7 +293,7 @@ export async function POST(request: Request) {
       return createdBooking;
     });
 
-    if (['QR_STATIC', 'EWALLET'].includes(booking.paymentMethod) && user.email) {
+    if (['QR_STATIC', 'EWALLET'].includes(booking.paymentMethod || '') && user.email) {
       await sendBookingConfirmationEmail(
         user.email || '',
         booking.bookingCode,
