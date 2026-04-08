@@ -29,9 +29,9 @@ WORKDIR /app
 
 ENV NODE_ENV production
 
-# Install OpenSSL for Prisma Query Engine and Sharp for Image Optimization
+# Install OpenSSL for Prisma Query Engine, Sharp for Image Optimization, and bcryptjs for Database Seeding
 RUN apk add --no-cache openssl
-RUN npm install sharp@0.34.3 --no-save
+RUN npm install sharp@0.34.3 bcryptjs@3.0.3 --no-save
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
