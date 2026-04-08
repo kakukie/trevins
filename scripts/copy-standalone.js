@@ -22,7 +22,7 @@ function copyDirectory(src, dest) {
 }
 
 console.log('Copying static files to standalone...');
-copyDirectory('.next/static', '.next/standalone/.next');
+copyDirectory('.next/static', '.next/standalone/.next/static');
 
 console.log('Copying public files to standalone...');
 copyDirectory('public', '.next/standalone');
