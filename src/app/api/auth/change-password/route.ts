@@ -27,6 +27,13 @@ export async function PUT(request: Request) {
       );
     }
 
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return NextResponse.json(
+        { error: 'Password baru minimal 6 karakter' },
+        { status: 400 }
+      );
+    }
+
     // Verify current password
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
     if (!isValidPassword) {

@@ -14,6 +14,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (typeof password !== 'string' || password.length < 6) {
+      return NextResponse.json(
+        { error: 'Password minimal 6 karakter' },
+        { status: 400 }
+      );
+    }
+
     const user = await db.user.findFirst({
       where: {
         resetToken: token,

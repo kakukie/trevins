@@ -309,6 +309,19 @@ const getTicketTypeLabel = (type: string) => {
   return types[type] || type;
 };
 
+// Payment method helper
+const getPaymentMethodLabel = (method?: string | null) => {
+  if (!method) return '-';
+  const map: Record<string, string> = {
+    BANK_TRANSFER: 'Transfer Bank',
+    TRANSFER: 'Transfer Bank',
+    EWALLET: 'E-Wallet',
+    QR_STATIC: 'QRIS',
+    VA: 'Virtual Account',
+  };
+  return map[method] || method;
+};
+
 // Main Component
 export function VendorDashboard({ view = 'dashboard', showTabs = false }: VendorDashboardProps) {
   const { user, token } = useAuthStore();
@@ -1686,6 +1699,7 @@ export function VendorDashboard({ view = 'dashboard', showTabs = false }: Vendor
                       <TableHead>Pelanggan</TableHead>
                       <TableHead>Event</TableHead>
                       <TableHead>Total</TableHead>
+                      <TableHead>Metode Bayar</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Pembayaran</TableHead>
                       <TableHead>Tanggal</TableHead>
@@ -1709,6 +1723,9 @@ export function VendorDashboard({ view = 'dashboard', showTabs = false }: Vendor
                         </TableCell>
                         <TableCell>
                           <p className="font-semibold text-orange-600">{formatCurrency(booking.finalAmount)}</p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">{getPaymentMethodLabel(booking.paymentMethod)}</Badge>
                         </TableCell>
                         <TableCell>{getStatusBadge(booking.status)}</TableCell>
                         <TableCell>{getStatusBadge(booking.paymentStatus)}</TableCell>
@@ -1779,6 +1796,7 @@ export function VendorDashboard({ view = 'dashboard', showTabs = false }: Vendor
                       <TableHead>Penginapan</TableHead>
                       <TableHead>Kamar</TableHead>
                       <TableHead>Total</TableHead>
+                      <TableHead>Metode Bayar</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Pembayaran</TableHead>
                       <TableHead>Check-in</TableHead>
@@ -1808,6 +1826,9 @@ export function VendorDashboard({ view = 'dashboard', showTabs = false }: Vendor
                         </TableCell>
                         <TableCell>
                           <p className="font-semibold text-orange-600">{formatCurrency(b.finalAmount)}</p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">{getPaymentMethodLabel(b.paymentMethod)}</Badge>
                         </TableCell>
                         <TableCell>{getStatusBadge(b.status)}</TableCell>
                         <TableCell>{getStatusBadge(b.paymentStatus)}</TableCell>
@@ -2809,6 +2830,10 @@ export function VendorDashboard({ view = 'dashboard', showTabs = false }: Vendor
                   <p className="text-sm text-gray-500">Event</p>
                   <p className="font-medium">{selectedBooking.event?.name || '-'}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-500">Metode Pembayaran</p>
+                  <p className="font-medium">{getPaymentMethodLabel(selectedBooking.paymentMethod)}</p>
+                </div>
               </div>
 
               <Separator />
@@ -2945,6 +2970,10 @@ export function VendorDashboard({ view = 'dashboard', showTabs = false }: Vendor
                 <div>
                   <p className="text-sm text-gray-500">Check-out</p>
                   <p className="font-medium">{formatDate(selectedStayBooking.checkOut)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Metode Pembayaran</p>
+                  <p className="font-medium">{getPaymentMethodLabel(selectedStayBooking.paymentMethod)}</p>
                 </div>
               </div>
 

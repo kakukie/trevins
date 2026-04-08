@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Email tidak ditemukan' },
+        { error: 'Email atau password salah' },
         { status: 401 }
       );
     }
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
     if (!isValidPassword) {
       return NextResponse.json(
-        { error: 'Password salah' },
+        { error: 'Email atau password salah' },
         { status: 401 }
       );
     }

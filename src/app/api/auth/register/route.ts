@@ -26,6 +26,14 @@ export async function POST(request: Request) {
 
     const { name, email, password, phone, role = 'USER' } = parsed.data;
 
+    // Security: Block ADMIN role from public registration
+    if (role === 'ADMIN' as any) {
+      return NextResponse.json(
+        { error: 'Registrasi dengan role ini tidak diperbolehkan' },
+        { status: 403 }
+      );
+    }
+
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: 'Nama, email, dan password harus diisi' },
