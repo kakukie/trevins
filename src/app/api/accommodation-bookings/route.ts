@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
+import { sendBookingConfirmationEmail } from '@/lib/brevo';
 
 const createSchema = z.object({
   accommodationId: z.string().min(1),
@@ -9,8 +10,8 @@ const createSchema = z.object({
   checkIn: z.string().min(1),
   checkOut: z.string().min(1),
   guests: z.number().int().min(1).max(20).optional(),
-  guestName: z.string().min(2),
-  guestPhone: z.string().min(6),
+  guestName: z.string().min(1),
+  guestPhone: z.string().min(1),
   guestEmail: z.string().email(),
   notes: z.string().optional().nullable(),
   paymentMethod: z.string().optional().nullable(),
@@ -67,12 +68,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
+      console.error('Validation Error Details:', parsed.error.format());
       return NextResponse.json({ error: 'Input tidak valid', details: parsed.error.format() }, { status: 400 });
     }
 
     const accommodation = await db.accommodation.findUnique({
       where: { id: parsed.data.accommodationId },
-      select: { id: true, vendorId: true, isActive: true },
+      select: { id: true, vendorId: true, isActive: true, name: true },
     });
     if (!accommodation || !accommodation.isActive) {
       return NextResponse.json({ error: 'Penginapan tidak ditemukan' }, { status: 404 });
@@ -111,6 +113,11 @@ export async function POST(request: Request) {
 
     const paymentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    const resolvedPaymentMethod = parsed.data.paymentMethod || 'TRANSFER';
+    const autoApprove = ['QR_STATIC', 'EWALLET'].includes(resolvedPaymentMethod);
+    const bookingStatus = autoApprove ? 'CONFIRMED' : 'PENDING';
+    const paymentStatus = autoApprove ? 'PAID' : 'UNPAID';
+
     const created = await db.accommodationBooking.create({
       data: {
         bookingCode: bookingCode('STY'),
@@ -122,13 +129,13 @@ export async function POST(request: Request) {
         checkOut,
         nights,
         guests: parsed.data.guests ?? 1,
-        status: 'PENDING',
+        status: bookingStatus,
         totalAmount,
         discountAmount,
         finalAmount,
-        paymentMethod: parsed.data.paymentMethod || null,
+        paymentMethod: resolvedPaymentMethod,
         vendorPaymentMethodId: parsed.data.vendorPaymentMethodId || null,
-        paymentStatus: 'UNPAID',
+        paymentStatus: paymentStatus,
         paymentDeadline,
         qrCode: `trevins://stay/${Date.now()}`,
         notes: parsed.data.notes || null,
@@ -137,6 +144,15 @@ export async function POST(request: Request) {
         guestEmail: parsed.data.guestEmail,
       },
     });
+
+    if (autoApprove) {
+      await sendBookingConfirmationEmail(
+        parsed.data.guestEmail,
+        created.bookingCode,
+        `Penginapan: ${accommodation.name}`,
+        finalAmount
+      );
+    }
 
     // Create notifications (vendor + user) for visibility.
     await db.notification.createMany({

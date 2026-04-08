@@ -908,14 +908,26 @@ export function VendorDashboard({ view = 'dashboard', showTabs = false }: Vendor
     if (!token) return;
 
     try {
-      const response = await fetch(`/api/bookings/${bookingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status, paymentStatus }),
-      });
+      let response;
+      if (status === 'CONFIRMED') {
+        response = await fetch(`/api/bookings/${bookingId}/approve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: 'APPROVE' }),
+        });
+      } else {
+        response = await fetch(`/api/bookings/${bookingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status, paymentStatus }),
+        });
+      }
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
@@ -935,14 +947,26 @@ export function VendorDashboard({ view = 'dashboard', showTabs = false }: Vendor
     if (!token) return;
 
     try {
-      const response = await fetch(`/api/accommodation-bookings/${bookingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status, paymentStatus }),
-      });
+      let response;
+      if (status === 'CONFIRMED') {
+        response = await fetch(`/api/accommodation-bookings/${bookingId}/approve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: 'APPROVE' }),
+        });
+      } else {
+        response = await fetch(`/api/accommodation-bookings/${bookingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status, paymentStatus }),
+        });
+      }
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);

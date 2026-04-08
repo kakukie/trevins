@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
+import { sendBookingConfirmationEmail } from '@/lib/brevo';
 
 export async function GET(request: Request) {
   try {
@@ -243,6 +244,10 @@ export async function POST(request: Request) {
         }
       }
 
+      const autoApprove = ['QR_STATIC', 'EWALLET'].includes(resolvedPaymentMethod);
+      const bookingStatus = autoApprove ? 'CONFIRMED' : 'PENDING';
+      const paymentStatus = autoApprove ? 'PAID' : 'UNPAID';
+
       const createdBooking = await tx.booking.create({
         data: {
           bookingCode,
@@ -252,8 +257,8 @@ export async function POST(request: Request) {
           totalAmount,
           finalAmount: totalAmount,
           discountAmount: 0,
-          status: 'PENDING',
-          paymentStatus: 'UNPAID',
+          status: bookingStatus,
+          paymentStatus: paymentStatus,
           paymentMethod: resolvedPaymentMethod,
           vendorPaymentMethodId: resolvedVendorPaymentMethodId,
           paymentDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -287,6 +292,15 @@ export async function POST(request: Request) {
 
       return createdBooking;
     });
+
+    if (['QR_STATIC', 'EWALLET'].includes(booking.paymentMethod) && user.email) {
+      await sendBookingConfirmationEmail(
+        user.email || '',
+        booking.bookingCode,
+        booking.event ? booking.event.name : 'Aktivitas / Event',
+        booking.finalAmount
+      );
+    }
 
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {
